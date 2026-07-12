@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Barcode Scanner</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      background-image: url('static/images/bg.jpg');
+      background-size: cover;
+      background-position: center;
+      font-family: Arial, sans-serif;
+    }
+    #content-wrapper {
+      background-color: white;
+      padding: 20px;
+      max-width: 800px;
+      margin: 50px auto;
+      border-radius: 10px;
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+      opacity: 0.9;
+    }
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+    }
+    #finish-button, #clear-cart-button {
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+    #finish-button {
+      background-color: green;
+    }
+    #finish-button:hover {
+      background-color: darkgreen;
+    }
+    #clear-cart-button {
+      background-color: red;
+    }
+    #clear-cart-button:hover {
+      background-color: maroon;
+    }
+    #size {
+      font-size: larger;
+    }
+  </style>
+</head>
+<body>
+  <div id="content-wrapper">
+    <center id="size">
+      <center><img src="static/images/logo.png" alt="Ctrl Freaks Logo" style="width: 200px; height: auto; margin-bottom: 20px;" /></center>
+      <input type="text" id="barcode_16" placeholder="Enter 16-digit Barcode" autofocus />
+      <button id="add_to_cart">Add to Cart</button>
+
+      <h2>Cart</h2>
+      <table id="cartTable">
+        <thead>
+          <tr>
+            <th>Product Name</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <h3>Total Price: Rs.<span id="totalPrice">0.00</span></h3>
+      <button id="finish-button">Finish and Pay</button>
+      <button id="clear-cart-button">Clear Cart</button>
+
+      <div id="qrCodeSection" style="display: none">
+        <h3>QR Code for Payment:</h3>
+        <img id="qrCodeImage" src="" alt="QR Code" />
+      </div>
+    </center>
+  </div>
+
+  <script>
+    let cart = {};
+    let totalPrice = 0;
+    let isCartCleared = false;
+
+    $(document).ready(function () {
+      $("#barcode_16").focus(); // Automatically focus input on page load
+
+      $("#barcode_16").on("input", function () {
+        const barcodeValue = $(this).val();
+        if (barcodeValue.length === 16) {
+          $("#add_to_cart").click();
+          $(this).val(''); // Clear input field after processing
+        }
+      });
+
+      $("#add_to_cart").click(function () {
+        if (isCartCleared) isCartCleared = false;
+        const barcode_16_digits = $("#barcode_16").val();
+
+        $.ajax({
+          url: "/add_to_cart",
+          method: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({ barcode_16_digits }),
+          success: function (response) {
+            if (response.success) {
+              updateCart(response.message, response.price);
+            } else {
+              alert("Error: " + response.error);
+            }
+          },
+          error: function () {
+            alert("Request failed. Please check your connection.");
+          },
+        });
+      });
+
+      $("#finish-button").click(function () {
+        let confirmPayment = confirm("Your total is Rs." + totalPrice.toFixed(2) + ". Proceed with payment?");
+        if (confirmPayment) generateQRCode();
+      });
+
+      $("#clear-cart-button").click(function () {
+        if (isCartCleared) return;
+        let confirmClearCart = confirm("Are you sure you want to clear the cart?");
+        if (confirmClearCart) clearCart();
+      });
+    });
+
+    function updateCart(message, price) {
+      const productName = message.split(" ")[1];
+      if (message.includes("removed")) {
+        if (cart[productName]) {
+          cart[productName].quantity -= 1;
+          if (cart[productName].quantity <= 0) delete cart[productName];
+        }
+      } else {
+        if (!cart[productName]) {
+          cart[productName] = { quantity: 1, price };
+        } else {
+          cart[productName].quantity += 1;
+        }
+      }
+      updateTotalPrice();
+      renderCart();
+    }
+
+    function renderCart() {
+      let cartTableBody = $("#cartTable tbody");
+      cartTableBody.empty();
+      $.each(cart, function (name, details) {
+        cartTableBody.append(`
+          <tr>
+            <td>${name}</td>
+            <td>Rs.${details.price.toFixed(2)}</td>
+            <td>${details.quantity}</td>
+            <td>Rs.${(details.price * details.quantity).toFixed(2)}</td>
+          </tr>
+        `);
+      });
+    }
+
+    function updateTotalPrice() {
+      totalPrice = 0;
+      $.each(cart, function (name, details) {
+        totalPrice += details.price * details.quantity;
+      });
+      $("#totalPrice").text(totalPrice.toFixed(2));
+    }
+
+    function generateQRCode() {
+      $.post("/generate_qr_code", { amount: totalPrice }, function (response) {
+        if (response.success) {
+          $("#qrCodeImage").attr("src", response.qr_code_url);
+          $("#qrCodeSection").show();
+        } else {
+          alert("Payment failed. Please try again.");
+        }
+      }).fail(function () {
+        alert("Failed to generate QR code. Please try again.");
+      });
+    }
+
+    function clearCart() {
+      cart = {};
+      totalPrice = 0;
+      updateTotalPrice();
+      renderCart();
+      isCartCleared = true;
+      $.post("/clear_cart", function (response) {
+        if (!response.success) alert("Failed to clear cart on server.");
+      });
+    }
+  </script>
+</body>
+</html>
