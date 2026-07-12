@@ -1,0 +1,23 @@
+# Core dependencies for SMART-TROLLEY human-follower module
+# Autonomous trolley that detects and follows a human using
+# MobileNet SSD v2 (COCO, quantized) via TFLite
+
+# --- Computer Vision ---
+opencv-python==4.9.0.80
+numpy==1.26.4
+Pillow==10.3.0
+
+# --- TFLite inference (object detection) ---
+# Use tflite-runtime on Raspberry Pi for lighter footprint.
+# If tflite-runtime install fails for your Pi/Python version,
+# swap this line for: tensorflow==2.15.0
+tflite-runtime==2.14.0
+
+# --- Raspberry Pi camera + GPIO (motor/servo control) ---
+picamera2==0.3.17
+RPi.GPIO==0.7.1
+gpiozero==2.0.1
+
+# --- Utilities ---
+imutils==0.5.4
+argparse==1.4.0
