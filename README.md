@@ -28,13 +28,13 @@ The AI-Powered Smart Autonomous Shopping Trolley is an intelligent retail automa
 * Scan again to remove products from the cart.
 * Automatic total bill calculation.
 
-### 💳 Digital Payment Integration
+###  Digital Payment Integration
 
 * Dynamic UPI QR code generation for instant payments.
 * Queue-free checkout experience.
 * QR code generation using Python QRCode library.
 
-### 📊 Sales Analytics & Dynamic Discounts
+###  Sales Analytics & Dynamic Discounts
 
 * Purchase history logging and analytics.
 * Product demand analysis based on:
